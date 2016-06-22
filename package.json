@@ -22,6 +22,7 @@
   },
   "homepage": "https://github.com/blockenio/spec-circleci#readme",
   "devDependencies": {
+    "js-yaml": "^3.6.1",
     "mocha": "^2.5.3",
     "swagger-schema-official": "^2.0.0-bab6bed",
     "tv4": "^1.2.7"
