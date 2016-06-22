@@ -1,4 +1,3 @@
-# FIXME: make single repository
 swagger: '2.0'
 host: circleci.com
 schemes:
