@@ -1,0 +1,940 @@
+# FIXME: make single repository
+swagger: '2.0'
+host: circleci.com
+schemes:
+  - https
+basePath: /api/v1
+info:
+  title: CircleCI REST API
+  version: v1
+  description: |
+    The CircleCI API is a RESTful, fully-featured API that allows you to do almost anything in CircleCI.
+    You can access all information and trigger all actions.
+    The only thing we don’t provide access to is billing functions, which must be done from the CircleCI web UI.
+  license:
+    name: Attribution-NonCommercial-ShareAlike 4.0 International
+    url: http://creativecommons.org/licenses/by-nc-sa/4.0/
+securityDefinitions:
+  apikey:
+    type: apiKey
+    in: query
+    name: circle-token
+security:
+  - apikey: []
+produces:
+  - application/json
+paths:
+  /me:
+    get:
+      description: |
+        Provides information about the signed in user.
+      responses:
+        200:
+          description: signed in user
+          schema:
+            $ref: '#/definitions/User'
+  /projects:
+    get:
+      description: |
+        List of all the projects you're following on CircleCI, with build information organized by branch.
+      responses:
+        200:
+          description: |
+            List of all the projects you're following on CircleCI
+          schema:
+            $ref: '#/definitions/Projects'
+  /project/{username}/{project}:
+    parameters:
+      - $ref: '#/parameters/username'
+      - $ref: '#/parameters/project'
+    get:
+      description: |
+        Build summary for each of the last 30 builds for a single git repo.
+      parameters:
+        - $ref: '#/parameters/limit'
+        - $ref: '#/parameters/offset'
+        - $ref: '#/parameters/filter'
+      responses:
+        200:
+          description: Build summary for each of the last 30 builds
+          schema:
+            $ref: '#/definitions/Builds'
+    post:
+      description: |
+        Triggers a new build, returns a summary of the build.
+      consumes:
+        - application/json
+      parameters:
+        - name: body
+          in: body
+          schema:
+            type: object
+            properties:
+              revision:
+                $ref: '#/definitions/Revision'
+              tag:
+                $ref: '#/definitions/Tag'
+              parallel:
+                $ref: '#/definitions/Parallel'
+              build_parameters:
+                $ref: '#/definitions/BuildParameters'
+      responses:
+        201:
+          description: returns a summary of the build
+          schema:
+            $ref: '#/definitions/BuildSummary'
+  /recent-builds:
+    get:
+      description: |
+        Build summary for each of the last 30 recent builds, ordered by build_num.
+      parameters:
+        - $ref: '#/parameters/limit'
+        - $ref: '#/parameters/offset'
+      responses:
+        200:
+          description: Build summary for each of the last 30 recent builds
+          schema:
+            $ref: '#/definitions/Builds'
+  /project/{username}/{project}/{build_num}:
+    parameters:
+      - $ref: '#/parameters/username'
+      - $ref: '#/parameters/project'
+      - $ref: '#/parameters/build_num'
+    get:
+      description: |
+        Full details for a single build. The response includes all of the fields from the build summary.
+        This is also the payload for the [notification webhooks](/docs/configuration/#notify), in which case this object is the value to a key named 'payload'.
+      responses:
+        200:
+          description: Full details for a single build
+          schema:
+            $ref: '#/definitions/BuildDetail'
+  /project/{username}/{project}/{build_num}/artifacts:
+    parameters:
+      - $ref: '#/parameters/username'
+      - $ref: '#/parameters/project'
+      - $ref: '#/parameters/build_num'
+    get:
+      description: |
+        List the artifacts produced by a given build.
+      responses:
+        200:
+          description: List the artifacts produced by a given build
+          schema:
+            $ref: '#/definitions/Artifacts'
+  /project/{username}/{project}/{build_num}/retry:
+    parameters:
+      - $ref: '#/parameters/username'
+      - $ref: '#/parameters/project'
+      - $ref: '#/parameters/build_num'
+    post:
+      description: |
+        Retries the build, returns a summary of the new build.
+      responses:
+        200:
+          description: returns a summary of the new build
+          schema:
+            $ref: '#/definitions/Build'
+  /project/{username}/{project}/{build_num}/cancel:
+    parameters:
+      - $ref: '#/parameters/username'
+      - $ref: '#/parameters/project'
+      - $ref: '#/parameters/build_num'
+    post:
+      description: |
+        Cancels the build, returns a summary of the build.
+      responses:
+        200:
+          description: returns a summary of the build
+          schema:
+            $ref: '#/definitions/Build'
+  /project/{username}/{project}/{build_num}/tests:
+    parameters:
+      - $ref: '#/parameters/username'
+      - $ref: '#/parameters/project'
+      - $ref: '#/parameters/build_num'
+    get:
+      description: |
+        Provides test metadata for a build
+        Note: [Learn how to set up your builds to collect test metadata](https://circleci.com/docs/test-metadata/)
+      responses:
+        200:
+          description: |
+            test metadata for a build
+          schema:
+            $ref: '#/definitions/Tests'
+  /project/{username}/{project}/tree/{branch}:
+    parameters:
+      - $ref: '#/parameters/username'
+      - $ref: '#/parameters/project'
+      - $ref: '#/parameters/branch'
+    post:
+      description: |
+        Triggers a new build, returns a summary of the build.
+        Optional build parameters can be set using an experimental API.
+
+        Note: For more about build parameters, read about [using parameterized builds](https://circleci.com/docs/parameterized-builds/)
+      consumes:
+        - application/json
+      parameters:
+        - name: body
+          in: body
+          schema:
+            type: object
+            properties:
+              parallel:
+                $ref: '#/definitions/Parallel'
+              revision:
+                $ref: '#/definitions/Revision'
+              build_parameters:
+                $ref: '#/definitions/BuildParameters'
+      responses:
+        201:
+          description: returns a summary of the build
+          headers:
+            Location:
+              type: string
+              format: uri
+          schema:
+            $ref: '#/definitions/Build'
+  /project/{username}/{project}/ssh-key:
+    parameters:
+      - $ref: '#/parameters/username'
+      - $ref: '#/parameters/project'
+    post:
+      description: |
+        Create an ssh key used to access external systems that require SSH key-based authentication
+      consumes:
+        - application/json
+      parameters:
+        - name: Content-Type
+          in: header
+          required: true
+          type: string
+          enum:
+            - application/json
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+              hostname:
+                type: string
+              private_key:
+                type: string
+      responses:
+        default:
+          description:
+            no response expected
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+          examples:
+            application/json:
+              message: "a private key is required"
+  /project/{username}/{project}/checkout-key:
+    parameters:
+      - $ref: '#/parameters/username'
+      - $ref: '#/parameters/project'
+    get:
+      description: |
+        Lists checkout keys.
+      responses:
+        200:
+          description: checkout keys
+          schema:
+            $ref: '#/definitions/Keys'
+    post:
+      description: |
+        Creates a new checkout key.
+        Only usable with a user API token.
+      parameters:
+        - name: type
+          in: body
+          description: |
+            The type of key to create. Can be 'deploy-key' or 'github-user-key'.
+          schema:
+            type: string
+            enum:
+              - deploy-key
+              - github-user-key
+      responses:
+        200:
+          $ref: '#/responses/key'
+  /project/{username}/{project}/checkout-key/{fingerprint}:
+    parameters:
+      - $ref: '#/parameters/username'
+      - $ref: '#/parameters/project'
+      - $ref: '#/parameters/fingerprint'
+    get:
+      description: |
+        Get a checkout key.
+      responses:
+        200:
+          $ref: '#/responses/key'
+    delete:
+      description: |
+        Delete a checkout key.
+      responses:
+        200:
+          description: status message
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                enum:
+                  - OK
+  /project/{username}/{project}/build-cache:
+    parameters:
+      - $ref: '#/parameters/username'
+      - $ref: '#/parameters/project'
+    delete:
+      description: |
+        Clears the cache for a project.
+      responses:
+        200:
+          description: status message
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+  /project/{username}/{project}/envvar:
+    parameters:
+      - $ref: '#/parameters/username'
+      - $ref: '#/parameters/project'
+    get:
+      description: |
+        Lists the environment variables for :project
+      responses:
+        200:
+          $ref: '#/responses/envvars'
+    post:
+      description: |
+        Creates a new environment variable
+      responses:
+        200:
+          $ref: '#/responses/envvar'
+  /project/{username}/{project}/envvar/{name}:
+    parameters:
+      - $ref: '#/parameters/username'
+      - $ref: '#/parameters/project'
+      - $ref: '#/parameters/envvar_name'
+    get:
+      description: |
+        Gets the hidden value of environment variable :name
+      responses:
+        200:
+          $ref: '#/responses/envvar'
+    delete:
+      description: |
+        Deletes the environment variable named ':name'
+      responses:
+        200:
+          description: |
+            Deletes the environment variable named ':name'
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                enum:
+                  - OK
+  /user/heroku-key:
+    post:
+      description: |
+        Adds your Heroku API key to CircleCI, takes apikey as form param name.
+      responses:
+        403:
+          description: |
+            Your Heroku API key is invalid.
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+parameters:
+  username:
+    name: username
+    description: |
+      XXXXXXXXX
+    in: path
+    required: true
+    type: string
+  project:
+    name: project
+    description: |
+      XXXXXXXXX
+    in: path
+    required: true
+    type: string
+  build_num:
+    name: build_num
+    description: |
+      XXXXXXXXXX
+    in: path
+    required: true
+    type: integer
+  fingerprint:
+    name: fingerprint
+    description: |
+      XXXXXXXXXX
+    in: path
+    required: true
+    type: string
+  branch:
+    name: branch
+    description: |
+      The branch name should be url-encoded.
+    in: path
+    required: true
+    type: string
+  envvar_name:
+    name: name
+    description: |
+      XXXXXXXXXX
+    in: path
+    required: true
+    type: string
+  limit:
+    name: limit
+    description: |
+      The number of builds to return. Maximum 100, defaults to 30.
+    in: query
+    type: integer
+    maximum: 100
+    default: 30
+  offset:
+    name: offset
+    description: |
+      The API returns builds starting from this offset, defaults to 0.
+    in: query
+    type: integer
+    default: 0
+  filter:
+    name: filter
+    in: query
+    description: |
+      Restricts which builds are returned.
+      Set to "completed", "successful", "failed", "running", or defaults to no filter.
+    type: string
+    enum:
+      - completed
+      - successful
+      - failed
+      - running
+responses:
+  key:
+    description: checkout key
+    schema:
+      $ref: '#/definitions/Key'
+  envvars:
+    description: XXX
+    schema:
+      $ref: '#/definitions/Envvars'
+  envvar:
+    description: XXX
+    schema:
+      $ref: '#/definitions/Envvar'
+definitions:
+  StringOrNull:
+    type:
+      - string
+      - 'null'
+  Sha1:
+    type: string
+  Revision:
+    type: string
+    description: |
+      The specific revision to build.
+      Default is null and the head of the branch is used. Cannot be used with tag parameter.
+  Tag:
+    type: string
+    description: |
+      The tag to build. Default is null. Cannot be used with revision parameter.
+  Parallel:
+    type: string
+    description: |
+      The number of containers to use to run the build. Default is null and the project default is used.
+  BuildParameters:
+    type: object
+    description: |
+      Additional environment variables to inject into the build environment. A map of names to values.
+  Keys:
+    type: array
+    items:
+      $ref: '#/definitions/Key'
+  Key:
+    type: object
+    properties:
+      public_key:
+        type: string
+      type:
+        type: string
+        description: |
+          can be "deploy-key" or "github-user-key"
+        enum:
+          - deploy-key
+          - github-user-key
+      fingerprint:
+        type: string
+      preferred:
+        type: boolean
+      time:
+        description: when the key was issued
+        type: string
+        format: date-time
+  Envvars:
+    type: array
+    items:
+      $ref: '#/definitions/Envvar'
+  Envvar:
+    type: object
+    properties:
+      name:
+        type: string
+      value:
+        type: string
+  Tests:
+    type: object
+    properties:
+      tests:
+        type: array
+        items:
+          type: object
+          properties:
+            message:
+              type: string
+            file:
+              type: string
+            source:
+              type: string
+            run_time:
+              type: number
+            result:
+              $ref: '#/definitions/Status'
+            name:
+              type: string
+            classname:
+              type: string
+  Projects:
+    type: array
+    items:
+      $ref: '#/definitions/Project'
+  Project:
+    type: object
+    properties:
+      reponame:
+        type: string
+      oss:
+        type: boolean
+      username:
+        type: string
+      vcs_type:
+        type: string
+      vcs_url:
+        type: string
+        format: uri
+      followed:
+        type: boolean
+      parallel:
+        type: integer
+      ssh_keys:
+        type: array
+        items:
+          type: string
+      default_branch:
+        type: string
+      branches:
+        type: object
+      dependencies:
+        type: string
+      has_usable_key:
+        type: boolean
+      setup:
+        type: string
+      compile:
+        type: string
+      test:
+        type: string
+      extra:
+        type: string
+      language:
+        type: string
+      scopes:
+        type: array
+        items:
+          $ref: '#/definitions/Scope'
+      irc_server:
+        $ref: '#/definitions/StringOrNull'
+      irc_keyword:
+        $ref: '#/definitions/StringOrNull'
+      irc_channel:
+        $ref: '#/definitions/StringOrNull'
+      irc_username:
+        $ref: '#/definitions/StringOrNull'
+      irc_password:
+        $ref: '#/definitions/StringOrNull'
+      irc_notify_prefs:
+        $ref: '#/definitions/StringOrNull'
+      flowdock_api_token:
+        $ref: '#/definitions/StringOrNull'
+      campfire_subdomain:
+        $ref: '#/definitions/StringOrNull'
+      campfire_room:
+        $ref: '#/definitions/StringOrNull'
+      campfire_token:
+        $ref: '#/definitions/StringOrNull'
+      campfire_notify_prefs:
+        $ref: '#/definitions/StringOrNull'
+      slack_api_token:
+        $ref: '#/definitions/StringOrNull'
+      slack_channel:
+        $ref: '#/definitions/StringOrNull'
+      slack_channel_override:
+        $ref: '#/definitions/StringOrNull'
+      slack_webhook_url:
+        type: string
+        format: uri
+      slack_subdomain:
+        $ref: '#/definitions/StringOrNull'
+      slack_notify_prefs:
+        $ref: '#/definitions/StringOrNull'
+      hipchat_notify:
+        $ref: '#/definitions/StringOrNull'
+      hipchat_room:
+        $ref: '#/definitions/StringOrNull'
+      hipchat_api_token:
+        $ref: '#/definitions/StringOrNull'
+      hipchat_notify_prefs:
+        type:
+          - string
+          - 'null'
+      aws:
+        $ref: '#/definitions/Aws'
+      heroku_deploy_user:
+        $ref: '#/definitions/StringOrNull'
+      feature_flags:
+        type: object
+        properties:
+          set-github-status:
+            type: boolean
+          oss:
+            type: boolean
+          build-fork-prs:
+            type: boolean
+          junit:
+            type: boolean
+          osx:
+            type: boolean
+          fleet:
+            type:
+              - boolean
+              - 'null'
+          trusty-beta:
+            type: boolean
+  Aws:
+    type: object
+    properties:
+      keypair:
+        type:
+          - string
+          - 'null'
+  User:
+    type: object
+    properties:
+      enrolled_betas:
+        type: array
+        items:
+          type: string
+      in_beta_program:
+        type: boolean
+      selected_email:
+        type: string
+        format: email
+      avatar_url:
+        type: string
+        format: uri
+      trial_end:
+        type: string
+        format: date-time
+      admin:
+        type: boolean
+      basic_email_prefs:
+        type: string
+      sign_in_count:
+        type: integer
+      github_oauth_scopes:
+        type: array
+        items:
+          type: string
+      analytics_id:
+        type: string
+      name:
+        type: string
+      gravatar_id:
+        type:
+          - integer
+          - 'null'
+      days_left_in_trial:
+        type: integer
+      parallelism:
+        type: integer
+      bitbucket_authorized:
+        type: boolean
+      github_id:
+        type:
+          - integer
+          - 'null'
+      bitbucket:
+        type:
+          - integer
+          - 'null'
+      dev_admin:
+        type: boolean
+      all_emails:
+        type: array
+        items:
+          type: string
+          format: email
+      created_at:
+        type: string
+        format: date-time
+      plan:
+        type:
+          - string
+          - 'null'
+      heroku_api_key:
+        type:
+          - string
+          - 'null'
+      projects:
+        type: object
+      login:
+        type: string
+      organization_prefs:
+        type: object
+      containers:
+        type: integer
+      pusher_id:
+        type: string
+  BuildSummary:
+    type: object
+    properties:
+      outcome:
+        $ref: '#/definitions/Outcome'
+      status:
+        $ref: '#/definitions/Status'
+      build_num:
+        type: integer
+      vcs_revision:
+        $ref: '#/definitions/Sha1'
+      pushed_at:
+        type: string
+        format: "date-time"
+      added_at:
+        type: string
+        format: "date-time"
+  Builds:
+    type: array
+    items:
+      $ref: '#/definitions/Build'
+  Build:
+    type: object
+    properties:
+      vcs_url:
+        type: string
+        format: uri
+      build_url:
+        type: string
+        format: uri
+      branch:
+        type: string
+      committer_name:
+        type: string
+      committer_email:
+        type: string
+        format: email
+      subject:
+        type: string
+      body:
+        type: string
+        description: commit message body
+      why:
+        type: string
+        description: short string explaining the reason we built
+      dont_build:
+        type:
+          - string
+          - 'null'
+        description: reason why we didn't build, if we didn't build
+      queued_at:
+        type: string
+        description: time build was queued
+        format: "date-time"
+      start_time:
+        type: string
+        description: time build started
+        format: "date-time"
+      stop_time:
+        type: string
+        description: time build finished
+        format: "date-time"
+      build_time_millis:
+        type: integer
+      username:
+        type: string
+      reponame:
+        type: string
+      lifecycle:
+        $ref: '#/definitions/Lifecycle'
+      retry_of:
+        description: build_num of the build this is a retry of
+        type:
+          - integer
+          - 'null'
+      previous:
+        $ref: '#/definitions/PreviousBuild'
+  BuildDetail:
+    type: object
+    description: previous build
+    properties:
+      ssh_enabled:
+        type:
+          - boolean
+          - 'null'
+      retries:
+        type:
+          - boolean
+          - 'null'
+      compare:
+        type:
+          - string
+          - 'null'
+        format: uri
+      usage_queued_at:
+        type: string
+        format: date-time
+      node:
+        type: 'null'
+      all_commit_details:
+        $ref: '#/definitions/CommitDetails'
+      user:
+        $ref: '#/definitions/User'
+      job_name:
+        type: string
+      previous_successful_build:
+        $ref: '#/definitions/PreviousBuild'
+      timedout:
+        type:
+          - boolean
+          - 'null'
+  PreviousBuild:
+    type: object
+    description: previous build
+    properties:
+      status:
+        $ref: '#/definitions/Status'
+      build_num:
+        type: integer
+      build_time_millis:
+        type: integer
+  CommitDetail:
+    type: object
+    properties:
+      author_name:
+        type: string
+      commit:
+        $ref: '#/definitions/Sha1'
+      author_login:
+        type: string
+      committer_login:
+        type: string
+      committer_name:
+        type: string
+      body:
+        type: string
+      author_date:
+        type: string
+        format: date-time
+      committer_date:
+        type: string
+        format: date-time
+      commit_url:
+        type: string
+        format: uri
+      committer_email:
+        type: string
+        format: email
+      author_email:
+        type: string
+        format: email
+      subject:
+        type: string
+  CommitDetails:
+    type: array
+    items:
+      $ref: '#/definitions/CommitDetail'
+  Artifact:
+    type: object
+    properties:
+      node_index:
+        type: integer
+      path:
+        type: string
+      pretty_path:
+        type: string
+      url:
+        type: string
+  Artifacts:
+    type: array
+    items:
+      $ref: '#/definitions/Artifact'
+  Scope:
+    type: string
+    enum:
+      - write-settings
+      - view-builds
+      - read-settings
+      - trigger-builds
+      - all
+      - status
+      - none
+  Status:
+    type: string
+    enum:
+      - retried
+      - canceled
+      - infrastructure_fail
+      - timedout
+      - not_run
+      - running
+      - failed
+      - queued
+      - scheduled
+      - not_running
+      - no_tests
+      - fixed
+      - success
+  Outcome:
+    type: string
+    enum:
+      - canceled
+      - infrastructure_fail
+      - timedout
+      - failed
+      - no_tests
+      - success
+  Lifecycle:
+    type: string
+    enum:
+      - queued
+      - scheduled
+      - not_run
+      - not_running
+      - running
+      - finished
