@@ -1,0 +1,24 @@
+{
+  "name": "openapi-circleci",
+  "version": "0.8.0",
+  "description": "(Unofficial) OpenAPI document for CircleCI",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/blockenio/spec-circleci.git"
+  },
+  "keywords": [
+    "openapi",
+    "swagger",
+    "circleci"
+  ],
+  "author": "Leko <leko.noor@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/blockenio/spec-circleci/issues"
+  },
+  "homepage": "https://github.com/blockenio/spec-circleci#readme"
+}
