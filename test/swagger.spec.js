@@ -10,7 +10,7 @@ describe('swagger', () => {
   it('must compatible with OpenAPI', () => {
     const yml = fs.readFileSync(`${__dirname}/../swagger.yml`)
     return refParser.dereference(load(yml))
-      .then(schema => tv4.validate(schema, official))
+      .then(schema => tv4.lidate(schema, official))
       .then(valid => assert.ok(valid))
   })
 })
